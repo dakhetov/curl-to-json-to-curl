@@ -55,5 +55,13 @@ converter.convert({ type: 'string', data: curl }, function (err, conversion) {
     }
     console.log('\n--- Generated cURL ---');
     console.log(snippet);
+    
+    // Вывод cURL одной строкой
+    const oneLineCurl = snippet
+      .replace(/\\\s*\n\s*/g, ' ')  // убираем обратные слэши и переносы строк
+      .replace(/\s+/g, ' ')         // заменяем множественные пробелы на одинарные
+      .trim();                      // убираем пробелы в начале и конце
+    console.log('\n--- cURL одной строкой ---');
+    console.log(oneLineCurl);
   });
 });
