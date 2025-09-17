@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>cURL to Postman Converter</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 2.5rem;
+            font-weight: 300;
+        }
+        
+        .header p {
+            margin: 10px 0 0 0;
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .form-group textarea {
+            width: 100%;
+            min-height: 200px;
+            padding: 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 6px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            resize: vertical;
+            transition: border-color 0.3s ease;
+            box-sizing: border-box;
+        }
+        
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .result-section {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .result-section h3 {
+            margin: 0 0 15px 0;
+            color: #333;
+        }
+        
+        .result-content {
+            background: white;
+            padding: 15px;
+            border-radius: 4px;
+            border: 1px solid #e1e5e9;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 13px;
+            line-height: 1.4;
+            white-space: pre-wrap;
+            word-break: break-all;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .error {
+            background: #fff5f5;
+            border-left-color: #e53e3e;
+            color: #c53030;
+        }
+        
+        .error .result-content {
+            background: #fed7d7;
+            border-color: #feb2b2;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+        
+        .example-curl {
+            background: #f7fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            padding: 15px;
+            margin-top: 10px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 12px;
+            line-height: 1.4;
+            color: #4a5568;
+        }
+        
+        .copy-btn {
+            background: #48bb78;
+            font-size: 12px;
+            padding: 6px 12px;
+            margin-top: 10px;
+        }
+        
+        .copy-btn:hover {
+            background: #38a169;
+            box-shadow: 0 4px 15px rgba(72, 187, 120, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+        
+        // Пример cURL команды из parse.js
+        const exampleCurl = `curl 'https://demo-shop.bug-buster.ru/index.php/checkout/cart/add/uenc/aHR0cHM6Ly9kZW1vLXNob3AuYnVnLWJ1c3Rlci5ydS9pbmRleC5waHAvcHJvdGV1cy1maXRuZXNzLWphY2tzaGlydC5odG1s/product/430/' \\
+  -H 'Accept: application/json, text/javascript, */*; q=0.01' \\
+  -H 'Accept-Language: ru,en;q=0.9,la;q=0.8,es;q=0.7,fr;q=0.6' \\
+  -H 'Connection: keep-alive' \\
+  -H 'Content-Type: multipart/form-data; boundary=----WebKitFormBoundaryBvy2muQouTgPLzUa' \\
+  -b 's_fid=5FA4A9CF5E169A53-3D54DFC41AFC2F0B; private_content_version=eeb4eccc7d973dfc5ef4bd276e4f7dfc; _ym_uid=1747053351804025976; _ym_d=1758123936; _ym_isad=2; PHPSESSID=85af445d9b2f9ae2baae4fcce8a282ac; form_key=tRRgU5ygfpyPfScM; mage-cache-storage={}; mage-cache-storage-section-invalidation={}; mage-cache-sessid=true; mage-messages=; recently_viewed_product={}; recently_viewed_product_previous={}; recently_compared_product={}; recently_compared_product_previous={}; product_data_storage={}; form_key=tRRgU5ygfpyPfScM' \\
+  -H 'Origin: https://demo-shop.bug-buster.ru' \\
+  -H 'Referer: https://demo-shop.bug-buster.ru/index.php/proteus-fitness-jackshirt.html' \\
+  -H 'Sec-Fetch-Dest: empty' \\
+  -H 'Sec-Fetch-Mode: cors' \\
+  -H 'Sec-Fetch-Site: same-origin' \\
+  -H 'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 YaBrowser/25.8.0.0 Safari/537.36' \\
+  -H 'X-Requested-With: XMLHttpRequest' \\
+  -H 'sec-ch-ua: "Not)A;Brand";v="8", "Chromium";v="138", "YaBrowser";v="25.8", "Yowser";v="2.5"' \\
+  -H 'sec-ch-ua-mobile: ?0' \\
+  -H 'sec-ch-ua-platform: "Windows"' \\
+  --data-raw $'------WebKitFormBoundaryBvy2muQouTgPLzUa\\r\\nContent-Disposition: form-data; name="product"\\r\\n\\r\\n430\\r\\n------WebKitFormBoundaryBvy2muQouTgPLzUa\\r\\nContent-Disposition: form-data; name="selected_configurable_option"\\r\\n\\r\\n\\r\\n------WebKitFormBoundaryBvy2muQouTgPLzUa\\r\\nContent-Disposition: form-data; name="related_product"\\r\\n\\r\\n\\r\\n------WebKitFormBoundaryBvy2muQouTgPLzUa\\r\\nContent-Disposition: form-data; name="item"\\r\\n\\r\\n430\\r\\n------WebKitFormBoundaryBvy2muQouTgPLzUa\\r\\nContent-Disposition: form-data; name="form_key"\\r\\n\\r\\ntRRgU5ygfpyPfScM\\r\\n------WebKitFormBoundaryBvy2muQouTgPLzUa\\r\\nContent-Disposition: form-data; name="super_attribute[144]"\\r\\n\\r\\n167\\r\\n------WebKitFormBoundaryBvy2muQouTgPLzUa\\r\\nContent-Disposition: form-data; name="super_attribute[93]"\\r\\n\\r\\n50\\r\\n------WebKitFormBoundaryBvy2muQouTgPLzUa\\r\\nContent-Disposition: form-data; name="qty"\\r\\n\\r\\n1\\r\\n------WebKitFormBoundaryBvy2muQouTgPLzUa--\\r\\n'`;
+
+        function CurlConverter() {
+            const [curlInput, setCurlInput] = useState('');
+            const [isLoading, setIsLoading] = useState(false);
+            const [result, setResult] = useState(null);
+            const [error, setError] = useState(null);
+            const [showExample, setShowExample] = useState(false);
+
+            const handleConvert = async () => {
+                if (!curlInput.trim()) {
+                    setError('Пожалуйста, введите cURL команду');
+                    return;
+                }
+
+                setIsLoading(true);
+                setError(null);
+                setResult(null);
+
+                try {
+                    const response = await fetch('/api/convert', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ curlCommand: curlInput })
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        setResult(data.result);
+                        setError(null);
+                    } else {
+                        setError(data.error);
+                        setResult(null);
+                    }
+                } catch (err) {
+                    setError('Ошибка сети: ' + err.message);
+                    setResult(null);
+                } finally {
+                    setIsLoading(false);
+                }
+            };
+
+            const copyToClipboard = (text) => {
+                navigator.clipboard.writeText(text).then(() => {
+                    alert('Скопировано в буфер обмена!');
+                }).catch(() => {
+                    // Fallback для старых браузеров
+                    const textArea = document.createElement('textarea');
+                    textArea.value = text;
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textArea);
+                    alert('Скопировано в буфер обмена!');
+                });
+            };
+
+            const loadExample = () => {
+                setCurlInput(exampleCurl);
+                setShowExample(false);
+            };
+
+            return (
+                <div className="container">
+                    <div className="header">
+                        <h1>cURL to Postman Converter</h1>
+                        <p>Конвертируйте cURL команды в Postman коллекции используя библиотеки из parse.js</p>
+                    </div>
+                    
+                    <div className="content">
+                        <div className="form-group">
+                            <label htmlFor="curl-input">Введите cURL команду:</label>
+                            <textarea
+                                id="curl-input"
+                                value={curlInput}
+                                onChange={(e) => setCurlInput(e.target.value)}
+                                placeholder="Вставьте сюда вашу cURL команду..."
+                            />
+                            <button 
+                                type="button" 
+                                className="btn" 
+                                onClick={() => setShowExample(!showExample)}
+                                style={{marginTop: '10px', fontSize: '14px', padding: '8px 16px'}}
+                            >
+                                {showExample ? 'Скрыть пример' : 'Показать пример'}
+                            </button>
+                            
+                            {showExample && (
+                                <div className="example-curl">
+                                    <strong>Пример cURL команды из parse.js:</strong>
+                                    <pre>{exampleCurl}</pre>
+                                    <button 
+                                        type="button" 
+                                        className="btn copy-btn" 
+                                        onClick={loadExample}
+                                    >
+                                        Загрузить пример
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+
+                        <button 
+                            className="btn" 
+                            onClick={handleConvert}
+                            disabled={isLoading || !curlInput.trim()}
+                        >
+                            {isLoading ? 'Конвертация...' : 'Конвертировать'}
+                        </button>
+
+                        {isLoading && (
+                            <div className="loading">
+                                <p>Обработка cURL команды на сервере с помощью библиотек из parse.js...</p>
+                            </div>
+                        )}
+
+                        {error && (
+                            <div className="result-section error">
+                                <h3>Ошибка</h3>
+                                <div className="result-content">{error}</div>
+                            </div>
+                        )}
+
+                        {result && (
+                            <div>
+                                <div className="result-section">
+                                    <h3>Postman Collection JSON (из parse.js)</h3>
+                                    <div className="result-content">{result.collectionJson}</div>
+                                    <button 
+                                        className="btn copy-btn" 
+                                        onClick={() => copyToClipboard(result.collectionJson)}
+                                    >
+                                        Копировать JSON
+                                    </button>
+                                </div>
+
+                                <div className="result-section">
+                                    <h3>Сгенерированная cURL команда (форматированная)</h3>
+                                    <div className="result-content">{result.generatedCurl}</div>
+                                    <button 
+                                        className="btn copy-btn" 
+                                        onClick={() => copyToClipboard(result.generatedCurl)}
+                                    >
+                                        Копировать cURL
+                                    </button>
+                                </div>
+
+                                <div className="result-section">
+                                    <h3>cURL команда (одна строка)</h3>
+                                    <div className="result-content">{result.oneLineCurl}</div>
+                                    <button 
+                                        className="btn copy-btn" 
+                                        onClick={() => copyToClipboard(result.oneLineCurl)}
+                                    >
+                                        Копировать cURL (одна строка)
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        }
+
+        ReactDOM.render(<CurlConverter />, document.getElementById('root'));
+    </script>
+</body>
+</html>
