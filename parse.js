@@ -44,7 +44,7 @@ converter.convert({ type: 'string', data: curl }, function (err, conversion) {
   const request = new sdk.Request(collectionJson);
 
   // вот тут все правильные параметры Language и Variant
-  // https://www.npmjs.com/package/postman-code-generators#using-postman-code-generators-as-a-library
+  // https://www.npmjs.com/package/postman-code-generators
   // если хотим в Python то вот так будет
   // Python	Requests
 
