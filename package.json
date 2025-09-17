@@ -1,0 +1,16 @@
+{
+  "name": "postman_curls",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "curl-to-postmanv2": "^1.8.2",
+    "postman-code-generators": "^2.0.0",
+    "postman-collection": "^5.1.1"
+  }
+}
